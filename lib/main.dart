@@ -55,11 +55,18 @@ class MyApp extends StatelessWidget {
                   final camera = cameras.first;
 
                   print(camera.toString());
+
+                //   await cameraPlugin.initializeCamera(camera.name);
                 } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(e.toString()),
+                    ),
+                  );
                   print(e.toString());
                 }
               },
-              child: const Text("Hola"),
+              child: const Text("Get cameras"),
             )
           ],
         ),
