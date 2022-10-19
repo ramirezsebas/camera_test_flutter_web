@@ -204,47 +204,55 @@ class _BeforeCameraState extends State<BeforeCamera> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Expanded(
-                child: Center(
-                  child: Container(
-                    color: Colors.black,
-                    child: CameraPreview(widget.controller),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage("assets/background.jpg"),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: Container(
+                      color: Colors.black,
+                      child: CameraPreview(widget.controller),
+                    ),
                   ),
                 ),
-              ),
-              Expanded(
-                child: Container(
-                  color: Colors.white,
-                  child: image == null
-                      ? const Center(
-                          child: Text(
-                            'Camera Preview',
-                            style: TextStyle(color: Colors.black),
+                Expanded(
+                  child: Container(
+                    color: Colors.white,
+                    child: image == null
+                        ? const Center(
+                            child: Text(
+                              'Camera Preview',
+                              style: TextStyle(color: Colors.black),
+                            ),
+                          )
+                        : Center(
+                            child: Image.network(
+                              image!.path,
+                            ),
                           ),
-                        )
-                      : Center(
-                          child: Image.network(
-                            image!.path,
-                          ),
-                        ),
-                ),
-              )
-            ],
-          ),
-          loading
-              ? // Make loading indicator with dark background
-              Container(
-                  color: Colors.black.withOpacity(0.5),
-                  child: const Center(
-                    child: CircularProgressIndicator(),
                   ),
                 )
-              : Container()
-        ],
+              ],
+            ),
+            loading
+                ? // Make loading indicator with dark background
+                Container(
+                    color: Colors.black.withOpacity(0.5),
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                : Container()
+          ],
+        ),
       ),
     );
   }
