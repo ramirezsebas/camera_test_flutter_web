@@ -75,6 +75,7 @@ class _BeforeCameraState extends State<BeforeCamera> {
   XFile? image;
   bool loading = false;
   double zoomLevel = 1.0;
+  bool isFlashOn = false;
 
   @override
   Widget build(BuildContext context) {
@@ -202,13 +203,60 @@ class _BeforeCameraState extends State<BeforeCamera> {
             },
             child: const Icon(Icons.zoom_out),
           ),
+          FloatingActionButton(
+            heroTag: "flash",
+            onPressed: () {
+              if (isFlashOn) {
+                setState(() {
+                  loading = true;
+                  isFlashOn = false;
+                });
+              } else {
+                setState(() {
+                  loading = true;
+                  isFlashOn = true;
+                });
+              }
+              widget.controller
+                  .setFlashMode(isFlashOn ? FlashMode.torch : FlashMode.off)
+                  .then((_) {
+                setState(() {
+                  loading = false;
+                });
+              }).catchError(
+                (Object e) {
+                  setState(() {
+                    loading = false;
+                  });
+                  if (e is CameraException) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("${e.code}/n${e.description}"),
+                      ),
+                    );
+                    switch (e.code) {
+                      case 'CameraAccessDenied':
+                        print('User denied camera access.');
+                        break;
+                      default:
+                        print('Handle other errors.');
+                        break;
+                    }
+                  }
+                },
+              );
+            },
+            child: Icon(isFlashOn ? Icons.flash_on : Icons.flash_off),
+          ),
         ],
       ),
       body: Container(
+        height: MediaQuery.of(context).size.height,
+        width: double.infinity,
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage("assets/background.jpg"),
-            fit: BoxFit.cover,
+            fit: BoxFit.fill,
           ),
         ),
         child: Stack(
