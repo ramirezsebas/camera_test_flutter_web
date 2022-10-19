@@ -1,75 +1,250 @@
-import 'package:camera_web/camera_web.dart';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-// Copyright 2013 The Flutter Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
 
-// TODO(a14n): remove this import once Flutter 3.1 or later reaches stable (including flutter/flutter#106316)
-// ignore: unnecessary_import
+late List<CameraDescription> _cameras;
 
-import 'package:camera_web/src/camera_service.dart';
-
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  runApp(const AppWrapper());
+  _cameras = await availableCameras();
+  runApp(const CameraApp());
 }
 
-class AppWrapper extends StatelessWidget {
-  const AppWrapper({
-    Key? key,
-  }) : super(key: key);
+/// CameraApp is the Main Application.
+class CameraApp extends StatefulWidget {
+  /// Default Constructor
+  const CameraApp({Key? key}) : super(key: key);
+
+  @override
+  State<CameraApp> createState() => _CameraAppState();
+}
+
+class _CameraAppState extends State<CameraApp> {
+  late CameraController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = CameraController(_cameras[0], ResolutionPreset.max);
+    controller.initialize().then((_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {});
+    }).catchError((Object e) {
+      if (e is CameraException) {
+        switch (e.code) {
+          case 'CameraAccessDenied':
+            print('User denied camera access.');
+            break;
+          default:
+            print('Handle other errors.');
+            break;
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const MyApp();
+    if (!controller.value.isInitialized) {
+      return Container();
+    }
+    return MaterialApp(
+      home: BeforeCamera(controller: controller),
+    );
   }
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class BeforeCamera extends StatefulWidget {
+  final CameraController controller;
+
+  const BeforeCamera({Key? key, required this.controller}) : super(key: key);
+
+  @override
+  State<BeforeCamera> createState() => _BeforeCameraState();
+}
+
+class _BeforeCameraState extends State<BeforeCamera> {
+  XFile? image;
+  bool loading = false;
+  double zoomLevel = 1.0;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Camera Web Test',
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Camera Web Test'),
-        ),
-        body: Column(
-          children: [
-            ElevatedButton(
-              onPressed: () async {
-                final cameraService = CameraService();
-
-                print(cameraService.toString());
-
-                final cameraPlugin = CameraPlugin(cameraService: cameraService);
-
-                print(cameraPlugin.toString());
-                try {
-                  final cameras = await cameraPlugin.availableCameras();
-                  print(cameras.toString());
-
-                  final camera = cameras.first;
-
-                  print(camera.toString());
-
-                //   await cameraPlugin.initializeCamera(camera.name);
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(e.toString()),
-                    ),
-                  );
-                  print(e.toString());
-                }
-              },
-              child: const Text("Get cameras"),
-            )
-          ],
-        ),
+    return Scaffold(
+      floatingActionButton: Row(
+        children: [
+          FloatingActionButton(
+            onPressed: () {
+              setState(() {
+                loading = true;
+              });
+              widget.controller.takePicture().then((XFile value) {
+                setState(() {
+                  image = value;
+                  loading = false;
+                });
+              }).catchError(
+                (Object e) {
+                  setState(() {
+                    loading = false;
+                  });
+                  if (e is CameraException) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("${e.code}/n${e.description}"),
+                      ),
+                    );
+                    switch (e.code) {
+                      case 'CameraAccessDenied':
+                        print('User denied camera access.');
+                        break;
+                      default:
+                        print('Handle other errors.');
+                        break;
+                    }
+                  }
+                },
+              );
+            },
+            child: const Icon(Icons.camera),
+          ),
+          FloatingActionButton(
+            heroTag: "zoomin",
+            onPressed: () {
+              if (zoomLevel < 3) {
+                setState(() {
+                  loading = true;
+                  zoomLevel = zoomLevel + 0.5;
+                });
+              } else {
+                setState(() {
+                  loading = true;
+                  zoomLevel = 1.0;
+                });
+              }
+              widget.controller.setZoomLevel(zoomLevel).then((_) {
+                setState(() {
+                  loading = false;
+                });
+              }).catchError(
+                (Object e) {
+                  setState(() {
+                    loading = false;
+                  });
+                  if (e is CameraException) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("${e.code}/n${e.description}"),
+                      ),
+                    );
+                    switch (e.code) {
+                      case 'CameraAccessDenied':
+                        print('User denied camera access.');
+                        break;
+                      default:
+                        print('Handle other errors.');
+                        break;
+                    }
+                  }
+                },
+              );
+            },
+            child: const Icon(Icons.zoom_in),
+          ),
+          FloatingActionButton(
+            heroTag: "zoomout",
+            onPressed: () {
+              if (zoomLevel > 1.0) {
+                setState(() {
+                  loading = true;
+                  zoomLevel = zoomLevel - 0.5;
+                });
+              } else {
+                setState(() {
+                  loading = true;
+                  zoomLevel = 1.0;
+                });
+              }
+              widget.controller.setZoomLevel(zoomLevel).then((_) {
+                setState(() {
+                  loading = false;
+                });
+              }).catchError(
+                (Object e) {
+                  setState(() {
+                    loading = false;
+                  });
+                  if (e is CameraException) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("${e.code}/n${e.description}"),
+                      ),
+                    );
+                    switch (e.code) {
+                      case 'CameraAccessDenied':
+                        print('User denied camera access.');
+                        break;
+                      default:
+                        print('Handle other errors.');
+                        break;
+                    }
+                  }
+                },
+              );
+            },
+            child: const Icon(Icons.zoom_out),
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          Column(
+            children: [
+              Expanded(
+                child: Center(
+                  child: Container(
+                    color: Colors.black,
+                    child: CameraPreview(widget.controller),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  color: Colors.white,
+                  child: image == null
+                      ? const Center(
+                          child: Text(
+                            'Camera Preview',
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        )
+                      : Center(
+                          child: Image.network(
+                            image!.path,
+                          ),
+                        ),
+                ),
+              )
+            ],
+          ),
+          loading
+              ? // Make loading indicator with dark background
+              Container(
+                  color: Colors.black.withOpacity(0.5),
+                  child: const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              : Container()
+        ],
       ),
     );
   }
